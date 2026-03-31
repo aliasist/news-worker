@@ -1,6 +1,7 @@
 name = "aliasist-news"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 
 # KV namespace for caching news
 [[kv_namespaces]]
@@ -10,6 +11,6 @@ id = "3e0258e348dd40869e1a1004510c281f"
 [vars]
 ALLOWED_ORIGIN = "https://aliasist.com"
 
-# Scheduled trigger — refresh news every 30 minutes
+# Auto-refresh every 30 minutes
 [triggers]
 crons = ["*/30 * * * *"]

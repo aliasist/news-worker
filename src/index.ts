@@ -22,7 +22,7 @@ const FEEDS = [
     category: "AI & Tech",
     tag: "tech",
     color: "#00C97B",
-    url: "https://feeds.feedburner.com/TechCrunch",
+    url: "https://feeds.arstechnica.com/arstechnica/index",
     backup: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
   },
   {
@@ -30,21 +30,21 @@ const FEEDS = [
     tag: "finance",
     color: "#5EF6FF",
     url: "https://feeds.content.dowjones.io/public/rss/mw_topstories",
-    backup: "https://feeds.marketwatch.com/marketwatch/topstories/",
+    backup: "https://hnrss.org/frontpage",
   },
   {
     category: "Defense & Security",
     tag: "defense",
     color: "#FFB347",
     url: "https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml",
-    backup: "https://feeds.feedburner.com/typepad/alleyinsider/silicon_alley_insider",
+    backup: "https://krebsonsecurity.com/feed/",
   },
   {
     category: "AI Security",
     tag: "aisec",
     color: "#FF5555",
-    url: "https://feeds.feedburner.com/TheHackersNews",
-    backup: "https://www.darkreading.com/rss.xml",
+    url: "https://www.darkreading.com/rss.xml",
+    backup: "https://feeds.feedburner.com/TheHackersNews",
   },
 ];
 
