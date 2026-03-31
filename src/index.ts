@@ -70,8 +70,10 @@ function parseRSS(xml: string, feed: typeof FEEDS[0]): NewsItem[] {
     const item = match[1];
     const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]
       ?? item.match(/<title>(.*?)<\/title>/)?.[1] ?? "";
-    const link = item.match(/<link>(.*?)<\/link>/)?.[1]
-      ?? item.match(/<guid>(.*?)<\/guid>/)?.[1] ?? "";
+    const rawLink = item.match(/<link>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/)?.[1]
+      ?? item.match(/<guid[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/guid>/)?.[1] ?? "";
+    // Strip any residual CDATA wrappers and whitespace from URL
+    const link = rawLink.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/\s+/g, "").trim();
     const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? "";
     const source = item.match(/<source[^>]*>(.*?)<\/source>/)?.[1]
       ?? title.split(" - ").pop() ?? "Unknown";
