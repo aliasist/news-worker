@@ -22,25 +22,29 @@ const FEEDS = [
     category: "AI & Tech",
     tag: "tech",
     color: "#00C97B",
-    url: "https://news.google.com/rss/search?q=artificial+intelligence+technology&hl=en-US&gl=US&ceid=US:en",
+    url: "https://feeds.feedburner.com/TechCrunch",
+    backup: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
   },
   {
     category: "Finance & Markets",
     tag: "finance",
     color: "#5EF6FF",
-    url: "https://news.google.com/rss/search?q=stock+market+finance+economy&hl=en-US&gl=US&ceid=US:en",
+    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+    backup: "https://feeds.marketwatch.com/marketwatch/topstories/",
   },
   {
     category: "Defense & Security",
     tag: "defense",
     color: "#FFB347",
-    url: "https://news.google.com/rss/search?q=defense+military+cybersecurity+national+security&hl=en-US&gl=US&ceid=US:en",
+    url: "https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml",
+    backup: "https://feeds.feedburner.com/typepad/alleyinsider/silicon_alley_insider",
   },
   {
     category: "AI Security",
     tag: "aisec",
     color: "#FF5555",
-    url: "https://news.google.com/rss/search?q=AI+security+adversarial+machine+learning+cyberattack&hl=en-US&gl=US&ceid=US:en",
+    url: "https://feeds.feedburner.com/TheHackersNews",
+    backup: "https://www.darkreading.com/rss.xml",
   },
 ];
 
@@ -91,16 +95,41 @@ function parseRSS(xml: string, feed: typeof FEEDS[0]): NewsItem[] {
   return items;
 }
 
+// Fetch a single RSS URL with fallback
+async function fetchFeed(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    },
+    redirect: "follow",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
+}
+
 // Fetch all feeds and return combined news
 async function fetchAllNews(): Promise<NewsItem[]> {
   const results = await Promise.allSettled(
     FEEDS.map(async (feed) => {
-      const res = await fetch(feed.url, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; AliasistBot/1.0)" },
-        cf: { cacheTtl: 1800 },
-      });
-      const xml = await res.text();
-      return parseRSS(xml, feed);
+      let xml = "";
+      try {
+        xml = await fetchFeed(feed.url);
+      } catch {
+        try {
+          xml = await fetchFeed((feed as any).backup ?? feed.url);
+        } catch {
+          return [];
+        }
+      }
+      const items = parseRSS(xml, feed);
+      if (items.length === 0 && (feed as any).backup) {
+        try {
+          const backupXml = await fetchFeed((feed as any).backup);
+          return parseRSS(backupXml, feed);
+        } catch { return []; }
+      }
+      return items;
     })
   );
 
