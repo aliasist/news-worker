@@ -63,7 +63,24 @@ interface NewsItem {
   summary?: string;
 }
 
-// Parse Google News RSS XML
+// Decode HTML entities to plain text (&#x2019; → ’ etc.)
+function decodeEntities(str: string): string {
+  return str
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&ndash;/g, "\u2013").replace(/&mdash;/g, "\u2014")
+    .replace(/&rsquo;/g, "\u2019").replace(/&lsquo;/g, "\u2018")
+    .replace(/&rdquo;/g, "\u201D").replace(/&ldquo;/g, "\u201C");
+}
+
+// Strip <!\[CDATA\[...]]> wrappers
+function stripCDATA(s: string): string {
+  return s.replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1").trim();
+}
+
+// Parse RSS XML into NewsItem array
 function parseRSS(xml: string, feed: typeof FEEDS[0]): NewsItem[] {
   const items: NewsItem[] = [];
   const itemRegex = /<item>([\s\S]*?)<\/item>/g;
@@ -71,24 +88,30 @@ function parseRSS(xml: string, feed: typeof FEEDS[0]): NewsItem[] {
 
   while ((match = itemRegex.exec(xml)) !== null && items.length < 5) {
     const item = match[1];
-    const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]
-      ?? item.match(/<title>(.*?)<\/title>/)?.[1] ?? "";
-    const rawLink = item.match(/<link>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/)?.[1]
-      ?? item.match(/<guid[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/guid>/)?.[1] ?? "";
-    // Strip any residual CDATA wrappers and whitespace from URL
-    const link = rawLink.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/\s+/g, "").trim();
-    const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? "";
-    const source = item.match(/<source[^>]*>(.*?)<\/source>/)?.[1]
-      ?? title.split(" - ").pop() ?? "Unknown";
 
-    // Clean title — remove source suffix
-    const cleanTitle = title.replace(/ - [^-]*$/, "").trim();
+    // Title: strip CDATA, then decode entities
+    const rawTitle = item.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? "";
+    const title = decodeEntities(stripCDATA(rawTitle));
 
-    if (cleanTitle && link) {
+    // Link: strip CDATA, extract bare URL
+    const rawLink = item.match(/<link>([\s\S]*?)<\/link>/)?.[1]
+      ?? item.match(/<guid[^>]*>([\s\S]*?)<\/guid>/)?.[1] ?? "";
+    const linkClean = decodeEntities(stripCDATA(rawLink)).replace(/\s+/g, "");
+    const linkMatch = linkClean.match(/^(https?:\/\/[^\s<>"]+)/);
+    const link = linkMatch ? linkMatch[1] : linkClean;
+
+    const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] ?? "";
+    const rawSource = item.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1] ?? "";
+    const source = rawSource ? decodeEntities(stripCDATA(rawSource)) : (title.split(" - ").pop() ?? feed.category);
+
+    // Clean title — strip trailing " - Source Name" suffix
+    const cleanTitle = decodeEntities(title.replace(/ - [^-]{2,40}$/, "").trim());
+
+    if (cleanTitle && link && link.startsWith("http")) {
       items.push({
-        id: Buffer.from(link).toString("base64").slice(0, 16),
+        id: btoa(link).slice(0, 16),
         title: cleanTitle,
-        source: source.replace(/<!\[CDATA\[|\]\]>/g, "").trim(),
+        source,
         url: link,
         published: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
         category: feed.category,
