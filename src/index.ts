@@ -5,9 +5,12 @@
  * Auto-refreshes every 30 minutes via cron trigger.
  */
 
+import { logNewsArticles, logUsage } from "./analytics";
+
 export interface Env {
   NEWS_CACHE: KVNamespace;
   GROQ_API_KEY: string;
+  ANALYTICS: D1Database;
 }
 
 const CORS = {
@@ -149,6 +152,11 @@ async function refreshCache(env: Env): Promise<NewsItem[]> {
   const news = await fetchAllNews();
   await env.NEWS_CACHE.put("latest", JSON.stringify(news), { expirationTtl: 3600 });
   await env.NEWS_CACHE.put("last_updated", new Date().toISOString(), { expirationTtl: 3600 });
+  // Log all articles to D1 analytics (deduped by URL via ON CONFLICT)
+  if (env.ANALYTICS) {
+    await logNewsArticles(env.ANALYTICS, news).catch(() => {});
+    await logUsage(env.ANALYTICS, "aliasist-news", "refresh", "complete", undefined, { count: news.length }).catch(() => {});
+  }
   return news;
 }
 

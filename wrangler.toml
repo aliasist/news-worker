@@ -14,3 +14,8 @@ ALLOWED_ORIGIN = "https://aliasist.com"
 # Auto-refresh every 30 minutes
 [triggers]
 crons = ["*/30 * * * *"]
+
+[[d1_databases]]
+binding = "ANALYTICS"
+database_name = "aliasist-analytics"
+database_id = "76035036-4ee2-45ba-865d-ab2c18089cfc"
