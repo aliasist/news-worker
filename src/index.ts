@@ -186,7 +186,7 @@ export default {
           lastUpdated: lastUpdated ?? new Date().toISOString(),
           sources: FEEDS.map(f => ({ tag: f.tag, category: f.category, color: f.color })),
         }),
-        { headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, max-age=900" } }
+        { headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, max-age=300, stale-while-revalidate=600" } }
       );
     }
 
