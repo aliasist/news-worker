@@ -43,20 +43,23 @@ const CORS = {
 // Google News RSS feeds — no API key needed
 const FEEDS = [
   {
+    // AI/ML research & tools — Ars Technica AI section
     category: "AI & Tech",
     tag: "tech",
     color: "#00C97B",
     url: "https://feeds.arstechnica.com/arstechnica/index",
-    backup: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+    backup: "https://www.wired.com/feed/category/ai/latest/rss",
   },
   {
+    // Tech/security finance — CNBC Tech (no personal finance noise)
     category: "Finance & Markets",
     tag: "finance",
     color: "#5EF6FF",
-    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
     backup: "https://hnrss.org/frontpage",
   },
   {
+    // Defense & national security
     category: "Defense & Security",
     tag: "defense",
     color: "#FFB347",
@@ -64,6 +67,7 @@ const FEEDS = [
     backup: "https://krebsonsecurity.com/feed/",
   },
   {
+    // AI Security / adversarial / CVEs
     category: "AI Security",
     tag: "aisec",
     color: "#FF5555",
