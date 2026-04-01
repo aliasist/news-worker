@@ -13,6 +13,27 @@ export interface Env {
   ANALYTICS: D1Database;
 }
 
+// — Sentry (lightweight, no SDK needed in Workers)
+const SENTRY_DSN = "https://a4392f5f65eb0725f34d6c410f97e1b1@o4511142133760000.ingest.us.sentry.io/4511142165348352";
+async function captureError(err: unknown, context: string): Promise<void> {
+  try {
+    const msg = err instanceof Error ? err.message : String(err);
+    const [, key, host, projectId] = SENTRY_DSN.match(/https:\/\/([^@]+)@([^/]+)\/(.+)/) ?? [];
+    if (!key) return;
+    await fetch(`https://${host}/api/${projectId}/store/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Sentry-Auth": `Sentry sentry_version=7, sentry_key=${key}` },
+      body: JSON.stringify({
+        platform: "javascript", level: "error",
+        logger: `news-worker.${context}`,
+        message: msg,
+        timestamp: new Date().toISOString(),
+        tags: { worker: "news-worker", context },
+      }),
+    });
+  } catch { /* never block the worker */ }
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
