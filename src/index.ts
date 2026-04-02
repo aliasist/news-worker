@@ -6,11 +6,13 @@
  */
 
 import { logNewsArticles, logUsage } from "./analytics";
+import { sendMetrics, sendLog } from "./datadog";
 
 export interface Env {
   NEWS_CACHE: KVNamespace;
   GROQ_API_KEY: string;
   ANALYTICS: D1Database;
+  DD_API_KEY?: string;
 }
 
 // — Sentry (lightweight, no SDK needed in Workers)
@@ -219,6 +221,7 @@ export default {
 
     // GET /api/news — return cached news
     if (url.pathname === "/api/news") {
+      const _t = Date.now();
       let news = await env.NEWS_CACHE.get("latest");
       const lastUpdated = await env.NEWS_CACHE.get("last_updated");
 
@@ -227,6 +230,7 @@ export default {
         const fresh = await refreshCache(env);
         news = JSON.stringify(fresh);
       }
+      sendMetrics(env.DD_API_KEY, [{ metric: "aliasist.api.request", value: 1, tags: ["route:/api/news","service:aliasist-news","status:200"] }, { metric: "aliasist.api.latency_ms", value: Date.now()-_t, type:"gauge", tags: ["route:/api/news","service:aliasist-news"] }]);
 
       return new Response(
         JSON.stringify({
@@ -257,6 +261,7 @@ export default {
 
   // Cron trigger — auto-refresh every 30 minutes
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    sendMetrics(env.DD_API_KEY, [{ metric: "aliasist.cron.news_refresh", value: 1, tags: ["service:aliasist-news"] }]);
     await refreshCache(env);
   },
 };
